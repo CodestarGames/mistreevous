@@ -2,20 +2,21 @@
  * A base node decorator.
  * @param type The node decorator type.
  */
-export default function Decorator(type) {
-  
+export default abstract class Decorator {
+
     /**
      * Gets the type of the node.
      */
-    this.getType = () => type;
+    getType = () => this.constructor.name;
   
     /**
      * Gets whether the decorator is a guard.
      */
-    this.isGuard = () => false;
+    isGuard = () => false;
 
     /**
      * Gets the decorator details.
      */
-    this.getDetails = () => ({ type: this.getType() });
+    getDetails = () => ({ type: this.getType() });
+
 };

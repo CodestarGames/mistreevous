@@ -4,18 +4,23 @@ import Decorator from './decorator'
  * An EXIT decorator which defines a blackboard function to call when the decorated node is updated and moves to a finished state or is aborted.
  * @param functionName The name of the blackboard function to call.
  */
-export default function Exit(functionName) {
-    Decorator.call(this, "exit");
+export default class Exit extends Decorator {
+    private functionName: any;
+
+    constructor(functionName) {
+        super();
+        this.functionName = functionName;
+    }
 
     /**
      * Gets the function name.
      */
-    this.getFunctionName = () => functionName;
+    getFunctionName = () => this.functionName;
 
     /**
      * Gets the decorator details.
      */
-    this.getDetails = () => {
+    getDetails = () => {
         return {
             type: this.getType(),
             isGuard: this.isGuard(),
@@ -29,14 +34,12 @@ export default function Exit(functionName) {
      * @param isSuccess Whether the decorated node was left with a success state.
      * @param isAborted Whether the decorated node was aborted.
      */
-    this.callBlackboardFunction = (board, isSuccess, isAborted) => {
+    callBlackboardFunction = (board, isSuccess, isAborted) => {
         // Call the blackboard function if it exists.
-        if (typeof board[functionName] === "function") {
-            board[functionName].call(board, { succeeded: isSuccess, aborted: isAborted });
+        if (typeof board[this.functionName] === "function") {
+            board[this.functionName].call(board, { succeeded: isSuccess, aborted: isAborted });
         } else {
-            throw `cannot call exit decorator function '${functionName}' is not defined in the blackboard`;
+            throw `cannot call exit decorator function '${this.functionName}' is not defined in the blackboard`;
         }
     };
 };
-
-Exit.prototype = Object.create(Decorator.prototype);

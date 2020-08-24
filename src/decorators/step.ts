@@ -4,18 +4,22 @@ import Decorator from './decorator'
  * A STEP decorator which defines a blackboard function to call when the decorated node is updated.
  * @param functionName The name of the blackboard function to call.
  */
-export default function Step(functionName) {
-    Decorator.call(this, "step");
+export default class Step extends Decorator {
+    private readonly functionName : any;
 
+    constructor(functionName) {
+        super();
+        this.functionName = functionName;
+    }
     /**
      * Gets the function name.
      */
-    this.getFunctionName = () => functionName;
+    getFunctionName = () => this.functionName;
 
     /**
      * Gets the decorator details.
      */
-    this.getDetails = () => {
+    getDetails = () => {
         return {
             type: this.getType(),
             isGuard: this.isGuard(),
@@ -27,14 +31,12 @@ export default function Step(functionName) {
      * Attempt to call the blackboard function that this decorator refers to.
      * @param board The board.
      */
-    this.callBlackboardFunction = (board) => {
+    callBlackboardFunction = (board) => {
         // Call the blackboard function if it exists.
-        if (typeof board[functionName] === "function") {
-            board[functionName].call(board);
+        if (typeof board[this.functionName] === "function") {
+            board[this.functionName].call(board);
         } else {
-            throw `cannot call entry decorator function '${functionName}' is not defined in the blackboard`;
+            throw `cannot call entry decorator function '${this.functionName}' is not defined in the blackboard`;
         }
     };
 };
-
-Step.prototype = Object.create(Decorator.prototype);

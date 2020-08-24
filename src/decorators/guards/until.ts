@@ -4,23 +4,29 @@ import Decorator from '../decorator'
  * An UNTIL guard which is satisfied as long as the given condition remains false.
  * @param condition The name of the condition function that determines whether the guard is satisfied.
  */
-export default function Until(condition) {
-    Decorator.call(this, "until");
+export default class Until extends Decorator {
+
+    constructor(condition) {
+        super();
+        this.condition = condition;
+    }
 
     /**
      * Gets whether the decorator is a guard.
      */
-    this.isGuard = () => true;
+    isGuard = () => true;
+    private condition: any;
+
 
     /**
      * Gets the condition of the guard.
      */
-    this.getCondition = () => condition;
+    getCondition = () => this.condition;
 
     /**
      * Gets the decorator details.
      */
-    this.getDetails = () => {
+    getDetails = () => {
         return {
             type: this.getType(),
             isGuard: this.isGuard(),
@@ -33,14 +39,12 @@ export default function Until(condition) {
      * @param board The board.
      * @returns Whether the guard is satisfied.
      */
-    this.isSatisfied = (board) => {
+    isSatisfied = (board) => {
         // Call the condition function to determine whether this guard is satisfied.
-        if (typeof board[condition] === "function") {
-            return !!!(board[condition].call(board));
+        if (typeof board[(this.condition)] === "function") {
+            return !!!(board[this.condition].call(board));
         } else {
-            throw `cannot evaluate node guard as function '${condition}' is not defined in the blackboard`;
+            throw `cannot evaluate node guard as function '${this.condition}' is not defined in the blackboard`;
         }
     };
 };
-
-Until.prototype = Object.create(Decorator.prototype);

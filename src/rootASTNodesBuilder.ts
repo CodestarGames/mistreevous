@@ -13,6 +13,7 @@ import Until from './decorators/guards/until'
 import Entry from './decorators/entry'
 import Exit from './decorators/exit'
 import Step from './decorators/step'
+import Leaf from "./nodes/leaf";
 
 /**
  * The node decorator factories.
@@ -24,12 +25,26 @@ const DecoratorFactories = {
     "EXIT": (functionName) => new Exit(functionName),
     "STEP": (functionName) => new Step(functionName)
 };
+type ValidatorFunc = (depth: any) => void;
+type NodeFunc = (namedRootNodeProvider: any, visitedBranches: any) => (Node | Leaf | null);
+
+interface IAstNode {
+    type: string;
+    decorators?: any[];
+    name?: string | null;
+    children: any[];
+    validate?: ValidatorFunc;
+    createNodeInstance?: NodeFunc;
+    props?: {
+        [key: string]: any
+    };
+}
 
 /**
  * The AST node factories.
  */
 const ASTNodeFactories = {
-    "ROOT": () => ({ 
+    "ROOT": () : any => ({
         type: "root",
         decorators: [],
         name: null,
@@ -45,35 +60,39 @@ const ASTNodeFactories = {
                 throw "a root node must have a single child";
             }
         },
-        createNodeInstance: function (namedRootNodeProvider, visitedBranches) { 
+        createNodeInstance: function (namedRootNodeProvider, visitedBranches) {
             return new Root(
                 this.decorators,
                 this.children[0].createNodeInstance(namedRootNodeProvider, visitedBranches.slice())
             );
         }
     }),
-    "BRANCH": () => ({ 
+    "BRANCH": () : any => ({
         type: "branch",
-        branchName: "",
+        props: {
+            branchName: ""
+        },
         validate: function (depth) {},
         createNodeInstance: function (namedRootNodeProvider, visitedBranches) {
+            debugger
             // Try to find the root node with a matching branch name.
-            const targetRootNode = namedRootNodeProvider(this.branchName);
+            const targetRootNode = namedRootNodeProvider(this.props?.branchName);
 
             // If we have already visited this branch then we have a circular dependency.
-            if (visitedBranches.indexOf(this.branchName) !== -1) {
-                throw `circular dependency found in branch node references for branch '${this.branchName}'`;
+            if (visitedBranches.indexOf(this.props?.branchName) !== -1) {
+                throw `circular dependency found in branch node references for branch '${this.props?.branchName}'`;
             }
 
             // If we have a target root node, then the node instance we want will be the first and only child of the referenced root node.
             if (targetRootNode) {
-                return targetRootNode.createNodeInstance(namedRootNodeProvider, visitedBranches.concat(this.branchName)).getChildren()[0];
+                return targetRootNode.createNodeInstance(namedRootNodeProvider, visitedBranches.concat(this.props?.branchName)).getChildren()[0];
             } else {
-                throw `branch references root node '${this.branchName}' which has not been defined`;
+                throw `branch references root node '${this.props?.branchName}' which has not been defined`;
+                return null;
             }
         }
     }),
-    "SELECTOR": () => ({
+    "SELECTOR": () : IAstNode => ({
         type: "selector",
         decorators: [],
         children: [],
@@ -83,14 +102,14 @@ const ASTNodeFactories = {
                 throw "a selector node must have at least a single child";
             }
         },
-        createNodeInstance: function (namedRootNodeProvider, visitedBranches) { 
+        createNodeInstance: function (namedRootNodeProvider, visitedBranches) {
             return new Selector(
                 this.decorators,
                 this.children.map((child) => child.createNodeInstance(namedRootNodeProvider, visitedBranches.slice()))
             );
         }
     }),
-    "SEQUENCE": () => ({
+    "SEQUENCE": () : IAstNode => ({
         type: "sequence",
         decorators: [],
         children: [], 
@@ -107,7 +126,7 @@ const ASTNodeFactories = {
             );
         }
     }),
-    "PARALLEL": () => ({
+    "PARALLEL": () : IAstNode => ({
         type: "parallel",
         decorators: [],
         children: [], 
@@ -124,11 +143,13 @@ const ASTNodeFactories = {
             );
         }
     }),
-    "LOTTO": () => ({
+    "LOTTO": () : IAstNode => ({
         type: "lotto",
         decorators: [],
         children: [],
-        tickets: [], 
+        props: {
+            tickets: []
+        },
         validate: function (depth) {
             // A lotto node must have at least a single node.
             if (this.children.length < 1) {
@@ -138,12 +159,12 @@ const ASTNodeFactories = {
         createNodeInstance: function (namedRootNodeProvider, visitedBranches) { 
             return new Lotto(
                 this.decorators,
-                this.tickets,
+                this.props?.tickets,
                 this.children.map((child) => child.createNodeInstance(namedRootNodeProvider, visitedBranches.slice()))
             );
         }
     }),
-    "REPEAT": () => ({
+    "REPEAT": () : any => ({
         type: "repeat",
         decorators: [],
         iterations: null,
@@ -182,7 +203,7 @@ const ASTNodeFactories = {
             );
         }
     }),
-    "FLIP": () => ({
+    "FLIP": () : IAstNode => ({
         type: "flip",
         decorators: [],
         children: [],
@@ -199,7 +220,7 @@ const ASTNodeFactories = {
             );
         }
     }),
-    "CONDITION": () => ({
+    "CONDITION": () : any => ({
         type: "condition",
         decorators: [],
         conditionFunction: "",
@@ -211,7 +232,7 @@ const ASTNodeFactories = {
             );
         }
     }),
-    "WAIT": () => ({
+    "WAIT": () : any => ({
         type: "wait",
         decorators: [],
         duration: null,
@@ -243,7 +264,7 @@ const ASTNodeFactories = {
             );
         }
     }),
-    "ACTION": () => ({
+    "ACTION": () : any => ({
         type: "action",
         decorators: [],
         actionName: "",
@@ -333,7 +354,7 @@ export default function buildRootASTNodes(tokens) {
                 // We should have only a single argument that is not an empty string for a branch node, which is the branch name.
                 if (branchArguments.length === 1 && branchArguments[0] !== "") {
                     // The branch name will be the first and only node argument.
-                    node.branchName = branchArguments[0];
+                    node.props.branchName = branchArguments[0];
                 } else {
                     throw "expected single branch name argument";
                 } 
@@ -397,7 +418,7 @@ export default function buildRootASTNodes(tokens) {
                 // If the next token is a '[' character then some ticket counts have been defined as arguments.
                 if (tokens[0] === "[") {
                     // Get the ticket count arguments, each argument must be a number.
-                    node.tickets = getArguments(tokens, (arg) => (!isNaN(arg)) && parseFloat(arg, 10) === parseInt(arg, 10), "lotto node ticket counts must be integer values");
+                    node.tickets = getArguments(tokens, (arg) => (!isNaN(arg)) && parseFloat(arg) === parseInt(arg), "lotto node ticket counts must be integer values");
                 }
 
                 // Try to pick any decorators off of the token stack.
@@ -460,7 +481,7 @@ export default function buildRootASTNodes(tokens) {
                 stack[stack.length-1].push(node);
 
                 // Get the duration and potential longest duration of the wait.
-                const durations = getArguments(tokens, (arg) => (!isNaN(arg)) && parseFloat(arg, 10) === parseInt(arg, 10), "wait node durations must be integer values");
+                const durations = getArguments(tokens, (arg) => (!isNaN(arg)) && parseFloat(arg) === parseInt(arg), "wait node durations must be integer values");
 
                 // We should have got one or two durations.
                 if (durations.length === 1) {
@@ -489,7 +510,7 @@ export default function buildRootASTNodes(tokens) {
                 // Check for iteration counts ([])
                 if (tokens[0] === "[") {
                     // An iteration count has been defined. Get the iteration and potential maximum iteration of the wait.
-                    const iterationArguments = getArguments(tokens, (arg) => (!isNaN(arg)) && parseFloat(arg, 10) === parseInt(arg, 10), "repeat node iteration counts must be integer values");
+                    const iterationArguments = getArguments(tokens, (arg) => (!isNaN(arg)) && parseFloat(arg) === parseInt(arg), "repeat node iteration counts must be integer values");
 
                     // We should have got one or two iteration counts.
                     if (iterationArguments.length === 1) {
@@ -603,7 +624,7 @@ export default function buildRootASTNodes(tokens) {
  * @param expected An optional string that we expect the next popped token to match.
  * @returns The popped token.
  */
-function popAndCheck(tokens, expected) {
+function popAndCheck(tokens, expected?) {
     // Get and remove the next token.
     const popped = tokens.shift();
 
@@ -628,12 +649,12 @@ function popAndCheck(tokens, expected) {
  * @param validationFailedMessage  The exception message to throw if argument validation fails.
  * @returns The arguments list.
  */
-function getArguments(tokens, argumentValidator, validationFailedMessage) {
+function getArguments(tokens: Array<unknown>, argumentValidator?: any, validationFailedMessage?: any) {
     // Any lists of arguments will always be wrapped in '[]'. so we are looking for an opening
     popAndCheck(tokens, "[");
 
-    const argumentListTokens = [];
-    const argumentList       = [];
+    const argumentListTokens = new Array<any>();
+    const argumentList       = new Array<any>();
 
     // Grab all tokens between the '[' and ']'.
     while (tokens.length && tokens[0] !== "]") {
@@ -677,10 +698,10 @@ function getArguments(tokens, argumentValidator, validationFailedMessage) {
  */
 function getDecorators(tokens) {
 	// Create an array to hold any decorators found. 
-	const decorators = [];
+	const decorators = new Array<any>();
   
     // Keep track of names of decorators that we have found on the token stack, as we cannot have duplicates.
-    const decoratorsFound = [];
+    const decoratorsFound = new Array<any>();
   
     // Try to get the decorator factory for the next token.
     let decoratorFactory = DecoratorFactories[(tokens[0] || "").toUpperCase()];

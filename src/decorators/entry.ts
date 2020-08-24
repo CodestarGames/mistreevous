@@ -4,18 +4,23 @@ import Decorator from './decorator'
  * An ENTRY decorator which defines a blackboard function to call when the decorated node is updated and moves out of running state.
  * @param functionName The name of the blackboard function to call.
  */
-export default function Entry(functionName) {
-    Decorator.call(this, "entry");
+export default class Entry extends Decorator {
+    private functionName: any;
+
+    constructor(functionName) {
+        super();
+        this.functionName = functionName;
+    }
 
     /**
      * Gets the function name.
      */
-    this.getFunctionName = () => functionName;
+    getFunctionName = () => this.functionName;
 
     /**
      * Gets the decorator details.
      */
-    this.getDetails = () => {
+    getDetails = () => {
         return {
             type: this.getType(),
             isGuard: this.isGuard(),
@@ -27,14 +32,12 @@ export default function Entry(functionName) {
      * Attempt to call the blackboard function that this decorator refers to.
      * @param board The board.
      */
-    this.callBlackboardFunction = (board) => {
+    callBlackboardFunction = (board) => {
         // Call the blackboard function if it exists.
-        if (typeof board[functionName] === "function") {
-            board[functionName].call(board);
+        if (typeof board[this.functionName] === "function") {
+            board[this.functionName].call(board);
         } else {
-            throw `cannot call entry decorator function '${functionName}' is not defined in the blackboard`;
+            throw `cannot call entry decorator function '${this.functionName}' is not defined in the blackboard`;
         }
     };
 };
-
-Entry.prototype = Object.create(Decorator.prototype);

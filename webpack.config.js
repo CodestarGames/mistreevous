@@ -1,17 +1,19 @@
+const path = require('path');
 module.exports = {
-  entry: './src/index.js',
+  entry: "./src/index.ts",
   output: {
-    filename: './dist/index.js',
+    path: path.resolve(__dirname, './dist'),
+    filename: 'bundle.js',
     library: 'Mistreevous',
-    libraryTarget: 'umd'
+    libraryTarget: 'umd',
+    globalObject: 'this',
+    umdNamedDefine: true,
+
+  },
+  resolve: {
+    extensions: [".webpack.js", ".web.js", ".ts", ".js"]
   },
   module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        loader: 'babel-loader'
-      }
-    ]
-  },
-};
+    rules: [{ test: /\.ts$/, loader: "ts-loader" }]
+  }
+}

@@ -1,26 +1,29 @@
-import GuardPath from './decorators/guards/guardPath';
+import {GuardPath} from './decorators/guards/guardPath';
 import buildRootASTNodes from './rootASTNodesBuilder';
-import State from "./state";
+import {State} from "./state";
 
 /**
  * The behaviour tree.
  * @param definition The tree definition.
  * @param board The board.
  */
-export default function BehaviourTree(definition, board) {
-    /**
-     * The blackboard.
-     */
-    this._blackboard = board;
-    /**
-     * The main root tree node.
-     */
-    this._rootNode;
+export default class BehaviourTree {
+    private _blackboard: unknown;
+    private _rootNode: any;
+
+    constructor(definition: unknown, board: unknown) {
+        this._blackboard = board;
+
+        // Call init logic.
+        this._init(definition, board);
+    }
+
+
 
     /**
      * Initialise the BehaviourTree instance.
      */
-    this._init = function() {
+    _init(definition, board) {
         // The tree definition must be defined and a valid string.
         if (typeof definition !== "string") {
             throw new Error("the tree definition must be a string");
@@ -32,7 +35,7 @@ export default function BehaviourTree(definition, board) {
         }
 
         // Convert the definition into an array of raw tokens.
-        const tokens = this._parseTokensFromDefinition();
+        const tokens = this._parseTokensFromDefinition(definition);
 
         try {
             // Try to create the behaviour tree AST from tokens, this could fail if the definition is invalid.
@@ -65,7 +68,7 @@ export default function BehaviourTree(definition, board) {
      * Parse the BT tree definition into an array of raw tokens.
      * @returns An array of tokens parsed from the definition.
      */
-    this._parseTokensFromDefinition = function() {
+    _parseTokensFromDefinition(definition) {
         // Firstly, create a copy of the raw definition.
         let cleansedDefinition = definition;
 
@@ -85,8 +88,8 @@ export default function BehaviourTree(definition, board) {
     /**
      * Apply guard paths for every leaf node in the behaviour tree.
      */
-    this._applyLeafNodeGuardPaths = function() {
-        this._getAllNodePaths().forEach((path) => {
+    _applyLeafNodeGuardPaths() {
+        this._getAllNodePaths().forEach((path : any) => {
             // Each node in the current path will have to be assigned a guard path, working from the root outwards.
             for (let depth = 0; depth < path.length; depth++) {
                 // Get the node in the path at the current depth.
@@ -115,10 +118,10 @@ export default function BehaviourTree(definition, board) {
      * Gets a multi-dimensional array of root->leaf node paths.
      * @returns A multi-dimensional array of root->leaf node paths.
      */
-    this._getAllNodePaths = function() {
-        const nodePaths = [];
+    _getAllNodePaths() : unknown[] {
+        const nodePaths = new Array<any>();
 
-        const findLeafNodes = (path, node) => {
+        const findLeafNodes = (path : any, node) => {
             // Add the current node to the path.
             path = path.concat(node);
 
@@ -136,97 +139,97 @@ export default function BehaviourTree(definition, board) {
         return nodePaths;
     };
 
-    // Call init logic.
-    this._init();
-}
-
-/**
- * Gets the root node.
- * @returns The root node.
- */
-BehaviourTree.prototype.getRootNode = function () {
-    return this._rootNode;
-};
-
-/**
- * Gets the flattened details of every node in the tree.
- * @returns The flattened details of every node in the tree.
- */
-BehaviourTree.prototype.getFlattenedNodeDetails = function () {
-    // Create an empty flattened array of tree nodes.
-    const flattenedTreeNodes = [];
 
     /**
-     * Helper function to process a node instance and push details into the flattened tree nodes array.
-     * @param node The current node.
-     * @param parentUid The UID of the node parent, or null if the node is the main root node.
+     * Gets the root node.
+     * @returns The root node.
      */
-    const processNode = (node, parentUid) => {
+    getRootNode() {
+        return this._rootNode;
+    };
+
+    /**
+     * Gets the flattened details of every node in the tree.
+     * @returns The flattened details of every node in the tree.
+     */
+    getFlattenedNodeDetails() {
+        // Create an empty flattened array of tree nodes.
+        const flattenedTreeNodes = new Array<any>();
+
         /**
-         * Helper function to get details for all node decorators.
-         * @param decorators The node decorators.
-         * @returns The decorator details for a node.
+         * Helper function to process a node instance and push details into the flattened tree nodes array.
+         * @param node The current node.
+         * @param parentUid The UID of the node parent, or null if the node is the main root node.
          */
-        const getDecoratorDetails = (decorators) =>
-            decorators.length > 0 ? decorators.map((decorator) => decorator.getDetails()) : null;
+        const processNode = (node: any, parentUid) => {
+            /**
+             * Helper function to get details for all node decorators.
+             * @param decorators The node decorators.
+             * @returns The decorator details for a node.
+             */
+            const getDecoratorDetails = (decorators) =>
+                decorators.length > 0 ? decorators.map((decorator) => decorator.getDetails()) : null;
 
-        // Push the current node into the flattened nodes array.
-        flattenedTreeNodes.push({ 
-            id: node.getUid(),
-            type: node.getType(), 
-            caption: node.getName(),
-            state: node.getState(),
-            decorators: getDecoratorDetails(node.getDecorators()),
-            parentId: parentUid
-        });
+            // Push the current node into the flattened nodes array.
+            flattenedTreeNodes.push({
+                id: node.getUid(),
+                type: node.getType(),
+                caption: node.getName(),
+                state: node.getState(),
+                decorators: getDecoratorDetails(node.getDecorators()),
+                parentId: parentUid
+            });
 
-        // Process each of the nodes children if it is not a leaf node.
-        if (!node.isLeafNode()) {
-            node.getChildren().forEach((child) => processNode(child, node.getUid()));
+            // Process each of the nodes children if it is not a leaf node.
+            if (!node.isLeafNode()) {
+                node.getChildren().forEach((child) => processNode(child, node.getUid()));
+            }
+        };
+
+        // Convert the nested node structure into a flattened array of node details.
+        processNode(this._rootNode, null);
+
+        return flattenedTreeNodes;
+    };
+
+    /**
+     * Gets whether the tree is in the running state.
+     * @returns Whether the tree is in the running state.
+     */
+    isRunning() {
+        return this._rootNode.getState() === State.RUNNING;
+    };
+
+    /**
+     * Gets the current tree state.
+     * @returns The current tree state.
+     */
+    getState() {
+        return this._rootNode.getState();
+    };
+
+    /**
+     * Step the tree.
+     */
+    step() {
+        // If the root node has already been stepped to completion then we need to reset it.
+        if (this._rootNode.getState() === State.SUCCEEDED || this._rootNode.getState() === State.FAILED) {
+            this._rootNode.reset();
+        }
+
+        try {
+            this._rootNode.update(this._blackboard);
+        } catch (exception) {
+            throw new Error(`error stepping tree: ${exception}`);
         }
     };
 
-    // Convert the nested node structure into a flattened array of node details.
-    processNode(this._rootNode, null);
-
-    return flattenedTreeNodes;
-};
-
-/**
- * Gets whether the tree is in the running state.
- * @returns Whether the tree is in the running state.
- */
-BehaviourTree.prototype.isRunning = function () {
-    return this._rootNode.getState() === State.RUNNING;
-};
-
-/**
- * Gets the current tree state.
- * @returns The current tree state.
- */
-BehaviourTree.prototype.getState = function () {
-    return this._rootNode.getState();
-};
-
-/**
- * Step the tree.
- */
-BehaviourTree.prototype.step = function () {
-    // If the root node has already been stepped to completion then we need to reset it.
-    if (this._rootNode.getState() === State.SUCCEEDED || this._rootNode.getState() === State.FAILED) {
+    /**
+     * Reset the tree from the root.
+     */
+    reset() {
         this._rootNode.reset();
-    }
+    };
 
-    try {
-        this._rootNode.update(this._blackboard);
-    } catch (exception) {
-        throw new Error(`error stepping tree: ${exception}`);
-    }
-};
+}
 
-/**
- * Reset the tree from the root.
- */
-BehaviourTree.prototype.reset = function () {
-    this._rootNode.reset();
-};

@@ -1,23 +1,26 @@
 import Composite from './composite'
-import State from "../state";
+import {State} from "../state";
 
-/**
- * A SEQUENCE node.
- * The child nodes are executed in sequence until one fails or all succeed.
- * @param decorators The node decorators.
- * @param children The child nodes. 
- */
-export default function Sequence(decorators, children) {
-    Composite.call(this, "sequence", decorators, children);
-   
+export default class Sequence extends Composite {
     /**
-     * Update the node and get whether the node state has changed.
-     * @param board The board.
-     * @returns Whether the state of this node has changed as part of the update.
+     * A SEQUENCE node.
+     * The child nodes are executed in sequence until one fails or all succeed.
+     * @param decorators The node decorators.
+     * @param children The child nodes.
      */
-    this.onUpdate = function(board) {
+    constructor(decorators, children) {
+        super("sequence", decorators, children);
+
+        this._children = children;
+    }
+
+    getName() {
+        return "SEQUENCE";
+    }
+
+    onUpdate(board) {
         // Iterate over all of the children of this node.
-        for (const child of children) {
+        for (const child of this._children) {
             // If the child has never been updated or is running then we will need to update it now.
             if (child.getState() === State.READY || child.getState() === State.RUNNING) {
                 // Update the child of this node.
@@ -28,7 +31,7 @@ export default function Sequence(decorators, children) {
             if (child.getState() === State.SUCCEEDED) {
                 // Find out if the current child is the last one in the sequence.
                 // If it is then this sequence node has also succeeded.
-                if (children.indexOf(child) === children.length - 1) {
+                if (this._children.indexOf(child) === this._children.length - 1) {
                     // This node is a 'SUCCEEDED' node.
                     this.setState(State.SUCCEEDED);
 
@@ -61,12 +64,6 @@ export default function Sequence(decorators, children) {
             // The child node was not in an expected state.
             throw "Error: child node was not in an expected state.";
         }
-    };
- 
-    /**
-     * Gets the name of the node.
-     */
-    this.getName = () => "SEQUENCE";
+    }
 };
 
-Sequence.prototype = Object.create(Composite.prototype);
