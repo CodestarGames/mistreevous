@@ -42,31 +42,27 @@ export default class BehaviourTree {
             throw new Error("the blackboard must be defined");
         }
 
-        // Convert the definition into an array of raw tokens.
-        const tokens = this._parseTokensFromDefinition(definition);
-
         try {
 
-            let tst = {
-                "$type": "AI.Items.Root",
-                "children": {
-                    "$type": "AI.Items.Selector",
-                    "children": [
-                        {
-                            "$type": "AI.Items.Actions.PlayNarration",
-                            "audioId": "123"
-                        },
-                        {
-                            "$type": "AI.Items.Actions.PlayNarration",
-                            "audioId": "456"
-                        }
-                    ]
-                }
-            };
+            // let tst = {
+            //     "$type": "AI.Items.Root",
+            //     "children": {
+            //         "$type": "AI.Items.Selector",
+            //         "children": [
+            //             {
+            //                 "$type": "AI.Items.Actions.PlayNarration",
+            //                 "audioId": "123"
+            //             },
+            //             {
+            //                 "$type": "AI.Items.Actions.PlayNarration",
+            //                 "audioId": "456"
+            //             }
+            //         ]
+            //     }
+            // };
 
-            this.rootASTNodes = new RootNodesBuilder().TraverseContent([tst]);
+            this.rootASTNodes = new RootNodesBuilder().TraverseContent([JSON.parse(definition)]);
 
-            debugger;
             // Try to create the behaviour tree AST from tokens, this could fail if the definition is invalid.
             //this.rootASTNodes = buildRootASTNodes(tokens);
 
