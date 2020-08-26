@@ -1,5 +1,8 @@
 import GuardUnsatisifedException from '../decorators/guards/guardUnsatisifedException';
 import {State} from "../state";
+import Entry from "../decorators/entry";
+import Exit from "../decorators/exit";
+import Step from "../decorators/step";
 
 export default abstract class Node {
   private readonly _type: any;
@@ -34,7 +37,7 @@ export default abstract class Node {
     return this._decorators || [];
   }
 
-  getDecorator(type) {
+  getDecorator<T>(type) {
     return this.getDecorators().filter((decorator) => decorator.getType().toUpperCase() === type.toUpperCase())[0] || null;
   }
 
@@ -51,7 +54,7 @@ export default abstract class Node {
 
       // If this node is in the READY state then call the ENTRY decorator for this node if it exists.
       if (this.is(State.READY)) {
-        const entryDecorator = this.getDecorator("entry");
+        const entryDecorator: Entry = this.getDecorator<Entry>("entry");
 
         // Call the entry decorator function if it exists.
         if (entryDecorator) {
@@ -60,7 +63,7 @@ export default abstract class Node {
       }
 
       // Try to get the step decorator for this node.
-      const stepDecorator = this.getDecorator("step");
+      const stepDecorator: Step = this.getDecorator<Step>("step");
 
       // Call the step decorator function if it exists.
       if (stepDecorator) {
@@ -72,7 +75,7 @@ export default abstract class Node {
 
       // If this node is now in a 'SUCCEEDED' or 'FAILED' state then call the EXIT decorator for this node if it exists.
       if (this.is(State.SUCCEEDED) || this.is(State.FAILED)) {
-        const exitDecorator = this.getDecorator("exit");
+        const exitDecorator: Exit = this.getDecorator<Exit>("exit");
 
         // Call the exit decorator function if it exists.
         if (exitDecorator) {
@@ -113,6 +116,8 @@ export default abstract class Node {
     return this._type;
   }
 
+  abstract getName();
+
   abort(board) {
     // There is nothing to do if this node is not in the running state.
     if (!this.is(State.RUNNING)) {
@@ -123,7 +128,7 @@ export default abstract class Node {
     this.reset();
 
     // Try to get the exit decorator for this node.
-    const exitDecorator = this.getDecorator("exit");
+    const exitDecorator: Exit = this.getDecorator<Exit>("exit");
 
     // Call the exit decorator function if it exists.
     if (exitDecorator) {

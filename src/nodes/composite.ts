@@ -1,5 +1,6 @@
 import Node from './node'
 import {State} from "../state";
+import Exit from "../decorators/exit";
 
 export default class Composite extends Node {
     protected _children: any;
@@ -30,13 +31,13 @@ export default class Composite extends Node {
         }
 
         // Abort any child nodes.
-        this.getChildren().forEach(child => child.abort(board));
+        this.getChildren().forEach((child: Node) => child.abort(board));
 
         // Reset the state of this node.
         this.reset();
 
         // Try to get the exit decorator for this node.
-        const exitDecorator = this.getDecorator("exit");
+        const exitDecorator : Exit = this.getDecorator<Exit>("exit");
 
         // Call the exit decorator function if it exists.
         if (exitDecorator) {
@@ -54,6 +55,10 @@ export default class Composite extends Node {
 
     isLeafNode() {
         return false;
+    }
+
+    getName() {
+
     }
 };
 

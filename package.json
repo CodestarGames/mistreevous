@@ -2,7 +2,7 @@
   "name": "mistreevous",
   "version": "2.0.1",
   "description": "A tool to build behaviour trees in JavaScript",
-  "main": "dist/index.js",
+  "main": "dist/bundle.js",
   "types": "dist/mistreevous.d.ts",
   "directories": {
     "lib": "lib"
@@ -23,6 +23,7 @@
     "webpack-cli": "^3.3.12"
   },
   "scripts": {
+    "preinstall": "webpack",
     "build": "webpack",
     "test": "webpack && mocha"
   },

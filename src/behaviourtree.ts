@@ -1,6 +1,11 @@
 import {GuardPath} from './decorators/guards/guardPath';
 import buildRootASTNodes from './rootASTNodesBuilder';
 import {State} from "./state";
+import Root from "./nodes/root";
+import Composite from "./nodes/composite";
+import composite from "./nodes/composite";
+import Node from "./nodes/node";
+import {RootNodesBuilder} from "./rootNodesBuilder";
 
 /**
  * The behaviour tree.
@@ -8,8 +13,11 @@ import {State} from "./state";
  * @param board The board.
  */
 export default class BehaviourTree {
-    private _blackboard: unknown;
-    private _rootNode: any;
+
+    private readonly _blackboard: unknown;
+    private _rootNode: Root;
+    private rootNodeMap: any;
+    private rootASTNodes: any[];
 
     constructor(definition: unknown, board: unknown) {
         this._blackboard = board;
@@ -38,23 +46,44 @@ export default class BehaviourTree {
         const tokens = this._parseTokensFromDefinition(definition);
 
         try {
+
+            let tst = {
+                "$type": "AI.Items.Root",
+                "children": {
+                    "$type": "AI.Items.Selector",
+                    "children": [
+                        {
+                            "$type": "AI.Items.Actions.PlayNarration",
+                            "audioId": "123"
+                        },
+                        {
+                            "$type": "AI.Items.Actions.PlayNarration",
+                            "audioId": "456"
+                        }
+                    ]
+                }
+            };
+
+            this.rootASTNodes = new RootNodesBuilder().TraverseContent([tst]);
+
+            debugger;
             // Try to create the behaviour tree AST from tokens, this could fail if the definition is invalid.
-            const rootASTNodes = buildRootASTNodes(tokens);
+            //this.rootASTNodes = buildRootASTNodes(tokens);
 
             // Create a symbol to use as the main root key in our root node mapping.
             const mainRootNodeKey = Symbol("__root__");
 
             // Create a mapping of root node names to root AST tokens. The main root node will have a key of Symbol("__root__").
-            const rootNodeMap = {};
-            for (const rootASTNode of rootASTNodes) {
-                rootNodeMap[rootASTNode.name === null ? mainRootNodeKey : rootASTNode.name] = rootASTNode;
+            this.rootNodeMap = {};
+            for (const rootASTNode of this.rootASTNodes) {
+                this.rootNodeMap[rootASTNode.name === null ? mainRootNodeKey : rootASTNode.name] = rootASTNode;
             }
 
             // Create a provider for named root nodes.
-            const namedRootNodeProvider = function (name) { return rootNodeMap[name]; };
+            const namedRootNodeProvider = (name) =>  this.rootNodeMap[name];
 
             // Convert the AST to our actual tree.
-            this._rootNode = rootNodeMap[mainRootNodeKey].createNodeInstance(namedRootNodeProvider, []);
+            this._rootNode = this.rootNodeMap[mainRootNodeKey].createNodeInstance(namedRootNodeProvider, []);
 
             // Set a guard path on every leaf of the tree to evaluate as part of its update.
             this._applyLeafNodeGuardPaths();
@@ -104,7 +133,7 @@ export default class BehaviourTree {
                 const guardPath = new GuardPath(
                     path
                         .slice(0, depth + 1)
-                        .map((node) => ({ node, guards: node.getGuardDecorators() }))
+                        .map((node : Node) => ({ node, guards: node.getGuardDecorators() }))
                         .filter((details) => details.guards.length > 0)
                 )
 
@@ -121,7 +150,7 @@ export default class BehaviourTree {
     _getAllNodePaths() : unknown[] {
         const nodePaths = new Array<any>();
 
-        const findLeafNodes = (path : any, node) => {
+        const findLeafNodes = (path : any, node: Composite) => {
             // Add the current node to the path.
             path = path.concat(node);
 
@@ -129,7 +158,7 @@ export default class BehaviourTree {
             if (node.isLeafNode()) {
                 nodePaths.push(path);
             } else {
-                node.getChildren().forEach((child) => findLeafNodes(path, child));
+                node.getChildren().forEach((child: composite) => findLeafNodes(path, child));
             }
         };
 
@@ -161,7 +190,7 @@ export default class BehaviourTree {
          * @param node The current node.
          * @param parentUid The UID of the node parent, or null if the node is the main root node.
          */
-        const processNode = (node: any, parentUid) => {
+        const processNode = (node: Node, parentUid) => {
             /**
              * Helper function to get details for all node decorators.
              * @param decorators The node decorators.
@@ -180,9 +209,11 @@ export default class BehaviourTree {
                 parentId: parentUid
             });
 
-            // Process each of the nodes children if it is not a leaf node.
-            if (!node.isLeafNode()) {
-                node.getChildren().forEach((child) => processNode(child, node.getUid()));
+            if(node instanceof Composite) {
+                // Process each of the nodes children if it is not a leaf node.
+                if (!node.isLeafNode()) {
+                    node.getChildren().forEach((child) => processNode(child, node.getUid()));
+                }
             }
         };
 

@@ -18,7 +18,7 @@ import Leaf from "./nodes/leaf";
 /**
  * The node decorator factories.
  */
-const DecoratorFactories = {
+export const DecoratorFactories = {
     "WHILE": (condition) => new While(condition),
     "UNTIL": (condition) => new Until(condition),
     "ENTRY": (functionName) => new Entry(functionName),
@@ -43,7 +43,7 @@ interface IAstNode {
 /**
  * The AST node factories.
  */
-const ASTNodeFactories = {
+export const ASTNodeFactories = {
     "ROOT": () : any => ({
         type: "root",
         decorators: [],
@@ -74,7 +74,7 @@ const ASTNodeFactories = {
         },
         validate: function (depth) {},
         createNodeInstance: function (namedRootNodeProvider, visitedBranches) {
-            debugger
+
             // Try to find the root node with a matching branch name.
             const targetRootNode = namedRootNodeProvider(this.props?.branchName);
 
@@ -333,6 +333,7 @@ export default function buildRootASTNodes(tokens) {
                 popAndCheck(tokens, "{");
 
                 // The new scope is that of the new ROOT nodes children.
+                //WHAT THE FUCKITY FUCK THIS IS A REFERENCE????????????
                 stack.push(node.children);
                 break;
 
@@ -371,7 +372,6 @@ export default function buildRootASTNodes(tokens) {
                 node.decorators = getDecorators(tokens);
 
                 popAndCheck(tokens, "{");
-
                 // The new scope is that of the new SELECTOR nodes children.
                 stack.push(node.children);
                 break;
@@ -551,12 +551,13 @@ export default function buildRootASTNodes(tokens) {
                 const actionArguments = getArguments(tokens);
 
                 // We should have only a single argument that is not an empty string for an action node, which is the action name.
-                if (actionArguments.length === 1 && actionArguments[0] !== "") {
+                //if (actionArguments.length === 1 && actionArguments[0] !== "") {
                     // The action name will be the first and only node argument.
                     node.actionName = actionArguments[0];
-                } else {
-                    throw "expected single action name argument";
-                }
+                    node.actionData = actionArguments[1];
+                // } else {
+                //     throw "expected single action name argument";
+                // }
 
                 // Try to pick any decorators off of the token stack.
                 node.decorators = getDecorators(tokens);
@@ -657,6 +658,7 @@ function getArguments(tokens: Array<unknown>, argumentValidator?: any, validatio
     const argumentList       = new Array<any>();
 
     // Grab all tokens between the '[' and ']'.
+
     while (tokens.length && tokens[0] !== "]") {
         // The next token is part of our arguments list.
         argumentListTokens.push(tokens.shift());

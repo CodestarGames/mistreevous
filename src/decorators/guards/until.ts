@@ -15,7 +15,7 @@ export default class Until extends Decorator {
      * Gets whether the decorator is a guard.
      */
     isGuard = () => true;
-    private condition: any;
+    private readonly condition: any;
 
 
     /**
